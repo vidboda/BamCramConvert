@@ -41,7 +41,7 @@ usage ()
 	echo '	Optional arguments :';
 	echo '		* -rm|--remove		:removes original file and index (in case of full conversion success) - default: false';
 	echo '		* -st|--samtools	<path to samtools> - default: /usr/local/bin/samtools';
-	echo '		* -fa|--ref-fasta	<path to ref genome .fa>: path to a fasta fils ref genome (the directory containing the fasta file must also contain samtools index) - default:/usr/local/share/refData/genome/hg19/hg19.fa';
+	echo '		* -fa|--ref-fasta	<path to ref genome .fa>: path to a fasta file reference genome (the directory containing the fasta file must also contain samtools index) - default:/usr/local/share/refData/genome/hg19/hg19.fa';
 	echo '	General arguments :';
 	echo '		* -sl|--slurm    : when running in SLURM environnment, generates srun commands - default: false';
 	echo '		* -h		: show this help message and exit';
@@ -154,8 +154,8 @@ if [ "${FILE_TYPE}" == 'bam' ];then
 else
 	CONVERT_TYPE='bam'
 	CONVERT_OPT='-b'
-	CONVERT_SUFFIX_INDEX='bai'
-	FILE_SMALL_SUFFIX='cra'
+	CONVERT_SUFFIX_INDEX='.bai'
+	FILE_SMALL_SUFFIX='.cra'
 fi
 
 convert
