@@ -2,7 +2,7 @@
 
 ###########################################################################
 #########							###########
-######### bam2cram.sh						###########
+######### bamCramConverter: bcc						###########
 ######### @uthor : D Baux	david.baux<at>inserm.fr		###########
 ######### Date : 17/01/2019					###########
 #########							###########
@@ -16,10 +16,10 @@
 
 VERSION=1.0
 USAGE="
-Program: bam2cram
+Program: bamCramConverter: bcc
 Version: ${VERSION}
 Contact: Baux David <david.baux@inserm.fr>
-Usage: bash bam2cram.sh -d <path to search dir> -s <File size to search (man find -size)> -mt <File last modif to search (man find -mtime)> -f <bam|cram> -st <path to samtools> -fa <path to ref genome .fa>
+Usage: bash bcc.sh -d <path to search dir> -s <File size to search (man find -size)> -mt <File last modif to search (man find -mtime)> -f <bam|cram> -st <path to samtools> -fa <path to ref genome .fa>
 	"
 
 if [ $# -eq 0 ]; then
@@ -32,7 +32,7 @@ fi
 usage ()
 {
 	echo 'This script convert bam files to cram  and reverse.';
-	echo 'Usage : bash bam2cram.sh';
+	echo 'Usage : bash bcc.sh';
 	echo '	Mandatory arguments :';
 	echo '		* -d|--directory	<path to search dir>: root dir for find command';
 	echo '		* -s|--size		<File size to search (man find -size)>: ex: +200000000k will search for files greater than 20Go; see man find -size argument';
