@@ -39,13 +39,13 @@ usage ()
 	echo '		* -mt|--modif-time	<File last modif to search (man find -mtime): ex: +180 will serach for files older than 6 months; see man find -mtime argument';
 	echo '		* -f|--file-type	<bam|cram>: file type to find and convert from (bam will search for bam files and convert to cram';
 	echo '	Optional arguments :';
-	echo '		* -rm|--remove		:rm converted file';
-	echo '		* -st|--samtools	<path to samtools>: default: /usr/local/bin/samtools';
-	echo '		* -fa|--ref-fastq	<path to ref genome .fa>: path to a fasta fils ref genome (the directory containing the fasta file must also contain samtools index)';
+	echo '		* -rm|--remove		:removes original file and index (in case of full conversion success) - default: false';
+	echo '		* -st|--samtools	<path to samtools> - default: /usr/local/bin/samtools';
+	echo '		* -fa|--ref-fasta	<path to ref genome .fa>: path to a fasta fils ref genome (the directory containing the fasta file must also contain samtools index) - default:/usr/local/share/refData/genome/hg19/hg19.fa';
 	echo '	General arguments :';
-	echo '		* -sl|--slurm    : when running in SLURM environnment, generates srun commands - cannot be used in combination with -c 0';
+	echo '		* -sl|--slurm    : when running in SLURM environnment, generates srun commands - default: false';
 	echo '		* -h		: show this help message and exit';
-	echo '		* -t		: test mode (dont execute command just print them)';
+	echo '		* -t		: test mode (dont execute command just print them) - default: false';
 	echo '';
 	exit
 }
