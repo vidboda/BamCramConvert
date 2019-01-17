@@ -1,5 +1,5 @@
 # BamCramConvert
-script to convert bam2cram and reverse using find and samtools (requires UNIX find ans samtools...)
+script to convert bam2cram and reverse using find and samtools (requires UNIX find and samtools...)
 
 Usage : bash bcc.sh
 
