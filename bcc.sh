@@ -109,7 +109,7 @@ if [ "${FILE_TYPE}" != "bam" -a "${FILE_TYPE}" != "cram" ];then
 	usage
 	exit 1
 fi
-if [[ ! -f "${SAMTOOLS}" || ! -f "${REF_FASTA}" ]];then
+if [[ ! -x "${SAMTOOLS}" || ! -r "${REF_FASTA}" ]];then
 	echo "samtools path ${SAMTOOLS} or ref fasta path ${REF_FASTA} is false";
 	usage
 	exit 1
