@@ -43,7 +43,8 @@ usage ()
 	echo '		* -st|--samtools	<path to samtools> - default: /usr/local/bin/samtools';
 	echo '		* -fa|--ref-fasta	<path to ref genome .fa>: path to a fasta file reference genome (the directory containing the fasta file must also contain samtools index) - default:/usr/local/share/refData/genome/hg19/hg19.fa';
 	echo '	General arguments :';
-	echo '		* -sl|--slurm    : when running in SLURM environnment, generates srun commands - default: false';
+	echo '		* -sl|--slurm   : when running in SLURM environnment, generates srun commands - default: false';
+	echo '		* -th|--threads : number of threads to be used for samtools -@ option (0 => 1 total thread, 1 => 2 total threads...)'
 	echo '		* -h		: show this help message and exit';
 	echo '		* -t		: test mode (dont execute command just print them) - default: false';
 	echo '';
@@ -52,6 +53,7 @@ usage ()
 
 # --Option processing
 SLURM_MODE=false
+THREADS=0
 TEST_MODE=false
 RM=false
 SAMTOOLS=/usr/local/bin/samtools
@@ -81,6 +83,9 @@ while [ "$1" != "" ];do
 		-rm | --remove ) RM=true
 			;;
 		-sl | --slurm )	SLURM_MODE=true
+			;;
+		-th | --threads )	shift
+			THREADS=$1
 			;;
 		-t | --test )	TEST_MODE=true
 			;;
@@ -114,15 +119,29 @@ if [[ ! -x "${SAMTOOLS}" || ! -r "${REF_FASTA}" ]];then
 	usage
 	exit 1
 fi
-
+if [[ ! "${THREADS}" =~ ^[0-9]+$ ]];then
+	echo "-th option must be an integer"
+	usage
+	exit 1
+fi
+SAMTOOLS_MULTI=''
+if [ "${THREADS}" -gt 0 ];then
+	SAMTOOLS_MULTI="-@ ${THREADS}"
+fi
+SLURM_THREADS=$((THREADS+1))
 SLURM=''
+SLURM_MULTI=''
 if [ "${SLURM_MODE}" == true ];then
 	SLURM="srun -N1 -c1 "
+	SLURM_MULTI="${SLURM}"
+	if [ "${THREADS}" -gt 0 ];then
+		SLURM_MULTI="srun -N1 -c${SLURM_THREADS} "
+	fi
 fi
 TEST_PREFIX=''
 TEST_SUFFIX=''
 if [ "${TEST_MODE}" == true ];then
-	TEST_PREFIX='echo "test cmd: '
+	TEST_PREFIX='echo "dry run cmd: '
 	TEST_SUFFIX='"'
 fi
 
@@ -131,15 +150,19 @@ fi
 convert () {
 	FILE_LIST=$(find "${DIR}" -xdev -name "*.${FILE_TYPE}" -mtime "${MTIME}" -type f -size "${SIZE}" -exec ls "{}" \;)
 	for FILE in ${FILE_LIST}; do
+		echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Starting conversion of ${FILE} into ${CONVERT_TYPE}"
 		OUT=$(echo "${FILE}" | sed "s/${FILE_TYPE}/${CONVERT_TYPE}/g")
-		echo "Launching: ${SLURM} ${SAMTOOLS} view -T ${REF_FASTA} ${CONVERT_OPT} -o ${OUT} ${FILE}";
-		${TEST_PREFIX} ${SLURM} ${SAMTOOLS} view -T ${REF_FASTA} ${CONVERT_OPT} -o ${OUT} ${FILE} ${TEST_SUFFIX}
+		echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - samtools view command:"
+		echo "${SLURM_MULTI} ${SAMTOOLS} view -T ${REF_FASTA} ${CONVERT_OPT} ${SAMTOOLS_MULTI} -o ${OUT} ${FILE}";
+		${TEST_PREFIX} ${SLURM_MULTI} ${SAMTOOLS} view -T ${REF_FASTA} ${CONVERT_OPT} ${SAMTOOLS_MULTI} -o ${OUT} ${FILE}  ${TEST_SUFFIX}
 		 if [ $? -eq 0 ];then 
-			 echo "Launching: ${SLURM} ${SAMTOOLS} index ${OUT} ${OUT}${CONVERT_SUFFIX_INDEX}"
+			 echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Conversion successfull - samtools index command:"
+			 echo "${SLURM} ${SAMTOOLS} index ${OUT} ${OUT}${CONVERT_SUFFIX_INDEX}"
 			 ${TEST_PREFIX} ${SLURM} ${SAMTOOLS} index ${OUT} ${OUT}${CONVERT_SUFFIX_INDEX} ${TEST_SUFFIX}
 			 if [ $? -eq 0 -a "${RM}" == true ];then
+				 echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Indexing sucessfull - deleting oiginal file:"
 				 RM_FILE=${FILE%.${FILE_TYPE}}
-				 echo "Deleting file:  rm ${RM_FILE}${FILE_SMALL_SUFFIX}*" 
+				 echo "rm ${RM_FILE}${FILE_SMALL_SUFFIX}*" 
 				 ${TEST_PREFIX} ${SLURM} rm ${RM_FILE}${FILE_SMALL_SUFFIX}* ${TEST_SUFFIX}
 			 fi
 		 fi
