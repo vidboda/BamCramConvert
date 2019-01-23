@@ -155,17 +155,21 @@ convert () {
 		echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - samtools view command:"
 		echo "${SLURM_MULTI} ${SAMTOOLS} view -T ${REF_FASTA} ${CONVERT_OPT} ${SAMTOOLS_MULTI} -o ${OUT} ${FILE}";
 		${TEST_PREFIX} ${SLURM_MULTI} ${SAMTOOLS} view -T ${REF_FASTA} ${CONVERT_OPT} ${SAMTOOLS_MULTI} -o ${OUT} ${FILE}  ${TEST_SUFFIX}
-		 if [ $? -eq 0 ];then 
-			 echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Conversion successfull - samtools index command:"
-			 echo "${SLURM} ${SAMTOOLS} index ${OUT} ${OUT}${CONVERT_SUFFIX_INDEX}"
-			 ${TEST_PREFIX} ${SLURM} ${SAMTOOLS} index ${OUT} ${OUT}${CONVERT_SUFFIX_INDEX} ${TEST_SUFFIX}
-			 if [ $? -eq 0 -a "${RM}" == true ];then
-				 echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Indexing sucessfull - deleting oiginal file:"
-				 RM_FILE=${FILE%.${FILE_TYPE}}
-				 echo "rm ${RM_FILE}${FILE_SMALL_SUFFIX}*" 
-				 ${TEST_PREFIX} ${SLURM} rm ${RM_FILE}${FILE_SMALL_SUFFIX}* ${TEST_SUFFIX}
-			 fi
-		 fi
+		if [ $? -eq 0 ];then 
+			echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Conversion successfull - samtools index command:"
+			echo "${SLURM} ${SAMTOOLS} index ${OUT} ${OUT}${CONVERT_SUFFIX_INDEX}"
+			${TEST_PREFIX} ${SLURM} ${SAMTOOLS} index ${OUT} ${OUT}${CONVERT_SUFFIX_INDEX} ${TEST_SUFFIX}
+			if [ $? -eq 0 -a "${RM}" == true ];then
+				echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Indexing sucessfull - deleting oiginal file:"
+				RM_FILE=${FILE%.${FILE_TYPE}}
+				echo "rm ${RM_FILE}${FILE_SMALL_SUFFIX}*" 
+				${TEST_PREFIX} ${SLURM} rm ${RM_FILE}${FILE_SMALL_SUFFIX}* ${TEST_SUFFIX}
+			elif [ $? -ne 0 ];then
+				echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - Error while indexing ${OUT}"
+			fi
+		else
+			echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - Error while converting ${FILE} into ${CONVERT_TYPE}"
+		fi
 	 done
 }
 
