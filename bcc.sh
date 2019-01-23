@@ -160,7 +160,7 @@ convert () {
 			echo "${SLURM} ${SAMTOOLS} index ${OUT} ${OUT}${CONVERT_SUFFIX_INDEX}"
 			${TEST_PREFIX} ${SLURM} ${SAMTOOLS} index ${OUT} ${OUT}${CONVERT_SUFFIX_INDEX} ${TEST_SUFFIX}
 			if [ $? -eq 0 -a "${RM}" == true ];then
-				echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Indexing sucessfull - deleting oiginal file:"
+				echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Indexing sucessfull - deleting original file:"
 				RM_FILE=${FILE%.${FILE_TYPE}}
 				echo "rm ${RM_FILE}${FILE_SMALL_SUFFIX}*" 
 				${TEST_PREFIX} ${SLURM} rm ${RM_FILE}${FILE_SMALL_SUFFIX}* ${TEST_SUFFIX}
