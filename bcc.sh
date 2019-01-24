@@ -156,19 +156,22 @@ fi
 
 check () {
 	OUT_DIR=$(dirname "${1}")
-	${TEST_PREFIX} ${PYTHON3} bam2cram-check/main.py -b ${1} -c ${2} -r ${3} -s -e ${OUT_DIR}/bam2cram_error.txt --log ${OUT_DIR}/bam2cram_log.txt ${TEST_SUFFIX}
+	${TEST_PREFIX} ${PYTHON3} bam2cram-check/main.py -b ${1} -c ${2} -r ${3} -s -e ${OUT_DIR}/bam2cramcheck_error.txt --log ${OUT_DIR}/bam2cramcheck_log.txt ${TEST_SUFFIX}
 	if [ $? -eq 0 ];then
-		RESULT=$(grep --quiet 'There were no errors and no differences between the stats for the 2 files' "${OUT_DIR}/bam2cram_log.txt")
+		#RESULT=$(grep 'There were no errors and no differences between the stats for the 2 files' "${OUT_DIR}/bam2cramcheck_log.txt")
+		#if [ "${TEST_MODE}" == true ];then
+		#	RESULT=0
+		#fi
+		#if [ "${RESULT}" =~ "2 files" ];then
 		if [ "${TEST_MODE}" == true ];then
-			RESULT=0
-		fi
-		if [ "${RESULT}" -eq 0 ];then
+			echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - bam2cram-check successfull"
+		elif grep 'There were no errors and no differences between the stats for the 2 files' "${OUT_DIR}/bam2cramcheck_log.txt";then
 			echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - bam2cram-check successfull"
 		else
-			echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - bam2cram-check failed: check ${OUT_DIR}/bam2cram_error.txt"
+			echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - bam2cram-check failed: check ${OUT_DIR}/bam2cramcheck_error.txt"
 		fi
 	else
-		echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - bam2cram-check failed: check ${OUT_DIR}/bam2cram_error.txt"
+		echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - bam2cram-check failed: check ${OUT_DIR}/bam2cramcheck_error.txt"
 	fi
 }
 
@@ -185,8 +188,6 @@ convert () {
 			echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Conversion successfull - samtools index command:"
 			echo "${SLURM} ${SAMTOOLS} index ${OUT} ${OUT}${CONVERT_SUFFIX_INDEX}"
 			${TEST_PREFIX} ${SLURM} ${SAMTOOLS} index ${OUT} ${OUT}${CONVERT_SUFFIX_INDEX} ${TEST_SUFFIX}
-			#echo "$CHECK - $?";exit
-			#if [ $? -eq 0 -a "${RM}" == true ];then
 			if [ $? -eq 0 ];then
 				if [ "${RM}" == true ];then
 					echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Indexing sucessfull - checking files:"
@@ -205,10 +206,8 @@ convert () {
 					CHECK_VALUE=$(check "${FILE}" "${OUT}" "${REF_FASTA}")
 					echo "${CHECK_VALUE}"
 				else
-			#elif [ $? -eq 0 ];then
 					echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Indexing sucessfull"
 				fi
-			#elif [ $? -ne 0 ];then
 			else
 				echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - Error while indexing ${OUT}"
 			fi
