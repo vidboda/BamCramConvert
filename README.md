@@ -14,7 +14,7 @@ Usage : bash bcc.sh
   
 		* -rm|--remove		:removes original file and index (in case of full conversion success) - default: false
 		* -st|--samtools	<path to samtools> - default: /usr/local/bin/samtools
-		* -fa|--ref-fastq	<path to ref genome .fa>: path to a fasta file reference genome (the directory containing the fasta file must also contain samtools index) - default:/usr/local/share/refData/genome/hg19/hg19.fa
+		* -fa|--ref-fasta	<path to ref genome .fa>: path to a fasta file reference genome (the directory containing the fasta file must also contain samtools index) - default:/usr/local/share/refData/genome/hg19/hg19.fa
 		* -c|--check		: uses bam2cram-check (slightly modified) to check the conversion - implicitely included with -rm - if fails and -rm: rm canceled) - requires python >3.5 and samtools > 1.3
 		* -p|--python3		<path to python3> - used in combination with -c or -rm: needed to run submodule bam2cram-check - default: /usr/bin/python3
     
