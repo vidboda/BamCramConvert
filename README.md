@@ -24,3 +24,7 @@ Usage : bash bcc.sh
 		* -th|--threads : number of threads to be used for samtools -@ option (0 => 1 total thread, 1 => 2 total threads...)
 		* -h		: show this help message and exit
 		* -t		: test mode (dont execute command just print them) - default: false
+
+Installation:
+
+see INSTALL.md
