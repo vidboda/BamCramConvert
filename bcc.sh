@@ -39,9 +39,11 @@ usage ()
 	echo '		* -mt|--modif-time	<File last modif to search (man find -mtime): ex: +180 will serach for files older than 6 months; see man find -mtime argument';
 	echo '		* -f|--file-type	<bam|cram>: file type to find and convert from (bam will search for bam files and convert to cram';
 	echo '	Optional arguments :';
-	echo '		* -rm|--remove		:removes original file and index (in case of full conversion success) - default: false';
+	echo '		* -rm|--remove		: removes original file and index (in case of full conversion success) - default: false';
 	echo '		* -st|--samtools	<path to samtools> - default: /usr/local/bin/samtools';
 	echo '		* -fa|--ref-fasta	<path to ref genome .fa>: path to a fasta file reference genome (the directory containing the fasta file must also contain samtools index) - default:/usr/local/share/refData/genome/hg19/hg19.fa';
+	echo '		* -c|--check		: uses bam2cram-check (slightly modified) to check the conversion - implicitely included with -rm - if fails and -rm: rm canceled) - requires python >3.5 and samtools > 1.3';
+	echo '		* -p|--python3		<path to python3> - used in combination with -c or -rm: needed to run submodule bam2cram-check - default: /usr/bin/python3';
 	echo '	General arguments :';
 	echo '		* -sl|--slurm   : when running in SLURM environnment, generates srun commands - default: false';
 	echo '		* -th|--threads : number of threads to be used for samtools -@ option (0 => 1 total thread, 1 => 2 total threads...)'
@@ -56,12 +58,16 @@ SLURM_MODE=false
 THREADS=0
 TEST_MODE=false
 RM=false
+CHECK=false
 SAMTOOLS=/usr/local/bin/samtools
 REF_FASTA=/usr/local/share/refData/genome/hg19/hg19.fa
+PYTHON3=/usr/bin/python3
 
 # --Parse command line
 while [ "$1" != "" ];do
 	case $1 in
+		-c | --check )	CHECK=true			
+			;;
 		-d | --directory )	shift
 			DIR=$1
 			;;
@@ -79,6 +85,9 @@ while [ "$1" != "" ];do
 			;;
 		-fa | --ref-fasta )	shift
 			REF_FASTA=$1
+			;;
+		-p | --python3 )	shift
+			PYTHON3=$1
 			;;
 		-rm | --remove ) RM=true
 			;;
@@ -145,6 +154,23 @@ if [ "${TEST_MODE}" == true ];then
 	TEST_SUFFIX='"'
 fi
 
+check () {
+	OUT_DIR=$(dirname "${1}")
+	${TEST_PREFIX} ${PYTHON3} bam2cram-check/main.py -b ${1} -c ${2} -r ${3} -s -e ${OUT_DIR}/bam2cram_error.txt --log ${OUT_DIR}/bam2cram_log.txt ${TEST_SUFFIX}
+	if [ $? -eq 0 ];then
+		RESULT=$(grep --quiet 'There were no errors and no differences between the stats for the 2 files' "${OUT_DIR}/bam2cram_log.txt")
+		if [ "${TEST_MODE}" == true ];then
+			RESULT=0
+		fi
+		if [ "${RESULT}" -eq 0 ];then
+			echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - bam2cram-check successfull"
+		else
+			echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - bam2cram-check failed: check ${OUT_DIR}/bam2cram_error.txt"
+		fi
+	else
+		echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - bam2cram-check failed: check ${OUT_DIR}/bam2cram_error.txt"
+	fi
+}
 
 
 convert () {
@@ -155,16 +181,35 @@ convert () {
 		echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - samtools view command:"
 		echo "${SLURM_MULTI} ${SAMTOOLS} view -T ${REF_FASTA} ${CONVERT_OPT} ${SAMTOOLS_MULTI} -o ${OUT} ${FILE}";
 		${TEST_PREFIX} ${SLURM_MULTI} ${SAMTOOLS} view -T ${REF_FASTA} ${CONVERT_OPT} ${SAMTOOLS_MULTI} -o ${OUT} ${FILE}  ${TEST_SUFFIX}
-		if [ $? -eq 0 ];then 
+		if [ $? -eq 0 ];then
 			echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Conversion successfull - samtools index command:"
 			echo "${SLURM} ${SAMTOOLS} index ${OUT} ${OUT}${CONVERT_SUFFIX_INDEX}"
 			${TEST_PREFIX} ${SLURM} ${SAMTOOLS} index ${OUT} ${OUT}${CONVERT_SUFFIX_INDEX} ${TEST_SUFFIX}
-			if [ $? -eq 0 -a "${RM}" == true ];then
-				echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Indexing sucessfull - deleting original file:"
-				RM_FILE=${FILE%.${FILE_TYPE}}
-				echo "rm ${RM_FILE}${FILE_SMALL_SUFFIX}*" 
-				${TEST_PREFIX} ${SLURM} rm ${RM_FILE}${FILE_SMALL_SUFFIX}* ${TEST_SUFFIX}
-			elif [ $? -ne 0 ];then
+			#echo "$CHECK - $?";exit
+			#if [ $? -eq 0 -a "${RM}" == true ];then
+			if [ $? -eq 0 ];then
+				if [ "${RM}" == true ];then
+					echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Indexing sucessfull - checking files:"
+					CHECK_VALUE=$(check "${FILE}" "${OUT}" "${REF_FASTA}")
+					if [[ "${CHECK_VALUE}" =~ "bam2cram-check successfull" ]];then
+						echo "${CHECK_VALUE}"
+						RM_FILE=${FILE%.${FILE_TYPE}}
+						echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - removing ${RM_FILE}${FILE_SMALL_SUFFIX}*" 
+						${TEST_PREFIX} ${SLURM} rm ${RM_FILE}${FILE_SMALL_SUFFIX}* ${TEST_SUFFIX}
+					else
+						echo "${CHECK_VALUE}"
+						echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - bam2cram-check failed: rm canceled"
+					fi
+				elif [ "${CHECK}" == true ];then
+					echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Indexing sucessfull - checking files:"
+					CHECK_VALUE=$(check "${FILE}" "${OUT}" "${REF_FASTA}")
+					echo "${CHECK_VALUE}"
+				else
+			#elif [ $? -eq 0 ];then
+					echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Indexing sucessfull"
+				fi
+			#elif [ $? -ne 0 ];then
+			else
 				echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - Error while indexing ${OUT}"
 			fi
 		else

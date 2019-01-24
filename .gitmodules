@@ -1,0 +1,3 @@
+[submodule "bam2cram-check"]
+	path = bam2cram-check
+	url = https://github.com/beboche/bam2cram-check.git
