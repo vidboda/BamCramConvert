@@ -167,7 +167,7 @@ check () {
 		#if [ "${RESULT}" =~ "2 files" ];then
 		if [ "${TEST_MODE}" == true ];then
 			echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - bam2cram-check successfull"
-		elif grep 'There were no errors and no differences between the stats for the 2 files' "${OUT_DIR}/bam2cramcheck_log.txt";then
+		elif grep -q 'There were no errors and no differences between the stats for the 2 files' "${OUT_DIR}/bam2cramcheck_log.txt";then
 			echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - bam2cram-check successfull"
 		else
 			echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - bam2cram-check failed: check ${OUT_DIR}/bam2cramcheck_error.txt"
@@ -212,7 +212,7 @@ convert () {
 			${TEST_PREFIX} ${SLURM} ${SAMTOOLS} index ${OUT} ${OUT}${CONVERT_SUFFIX_INDEX} ${TEST_SUFFIX}
 			if [ $? -eq 0 ];then
 				if [ "${RM}" == true ];then
-					echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Indexing sucessfull - checking files:"
+					echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Indexing sucessfull - checking files"
 					CHECK_VALUE=$(check "${FILE}" "${OUT}" "${REF_FASTA}")
 					if [[ "${CHECK_VALUE}" =~ "bam2cram-check successfull" ]];then
 						echo "${CHECK_VALUE}"
