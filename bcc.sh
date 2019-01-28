@@ -61,6 +61,8 @@ RM=false
 CHECK=false
 SAMTOOLS=/usr/local/bin/samtools
 REF_FASTA=/usr/local/share/refData/genome/hg19/hg19.fa
+GENOME_VERSION=hg19
+CHR1_LEN=249250621
 PYTHON3=/usr/bin/python3
 
 # --Parse command line
@@ -175,10 +177,27 @@ check () {
 	fi
 }
 
-
 convert () {
 	FILE_LIST=$(find "${DIR}" -xdev -name "*.${FILE_TYPE}" -mtime "${MTIME}" -type f -size "${SIZE}" -exec ls "{}" \;)
 	for FILE in ${FILE_LIST}; do
+		#checking genome version - as genome version is not always explicitely cited in BAM headers (see LRM outputs), we wall check crh1 length
+		#hg19 chr1 : 249250621
+		#hg38 chr1 : 248956422
+		#then bcc must be aware of the REF_FASTA version : will look for 19 or 38 in the name
+		#must be updated with new assemblies
+		TEST_REF=$(echo "${REF_FASTA}" | grep hg38)
+		#echo "DEBUG - [`date +'%Y-%m-%d %H:%M:%S'`] - ${REF_FASTA}-${TEST_REF}-${GENOME_VERSION}-${CHR1_LEN}"
+		if [ "${TEST_REF}" != '' ];then
+			GENOME_VERSION=hg38
+			CHR1_LEN=248956422
+		fi
+		TEST_REF=$("${SAMTOOLS}" view -H "${FILE}" | grep "LN:${CHR1_LEN}")
+		#echo "DEBUG - [`date +'%Y-%m-%d %H:%M:%S'`] - -${TEST_REF}-${GENOME_VERSION}-${CHR1_LEN}"
+		if [ "${TEST_REF}" == '' ];then
+			echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - ${FILE} genome version does not match ${GENOME_VERSION} based on chr1 length -${TEST_REF}-${GENOME_VERSION}-${CHR1_LEN}"
+			echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - ${FILE} won't be converted"
+			continue
+		fi
 		echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Starting conversion of ${FILE} into ${CONVERT_TYPE}"
 		BASE_DIR=$(dirname "$FILE")
 		FILE_NAME=$(basename "$FILE")
