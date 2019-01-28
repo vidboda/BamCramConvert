@@ -194,7 +194,7 @@ convert () {
 		TEST_REF=$("${SAMTOOLS}" view -H "${FILE}" | grep "LN:${CHR1_LEN}")
 		#echo "DEBUG - [`date +'%Y-%m-%d %H:%M:%S'`] - -${TEST_REF}-${GENOME_VERSION}-${CHR1_LEN}"
 		if [ "${TEST_REF}" == '' ];then
-			echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - ${FILE} genome version does not match ${GENOME_VERSION} based on chr1 length -${TEST_REF}-${GENOME_VERSION}-${CHR1_LEN}"
+			echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - ${FILE} genome version does not match ${GENOME_VERSION} based on chr1 length" # -${TEST_REF}-${GENOME_VERSION}-${CHR1_LEN}"
 			echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - ${FILE} won't be converted"
 			continue
 		fi
