@@ -180,7 +180,10 @@ convert () {
 	FILE_LIST=$(find "${DIR}" -xdev -name "*.${FILE_TYPE}" -mtime "${MTIME}" -type f -size "${SIZE}" -exec ls "{}" \;)
 	for FILE in ${FILE_LIST}; do
 		echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Starting conversion of ${FILE} into ${CONVERT_TYPE}"
-		OUT=$(echo "${FILE}" | sed "s/${FILE_TYPE}/${CONVERT_TYPE}/g")
+		BASE_DIR=$(dirname "$FILE")
+		FILE_NAME=$(basename "$FILE")
+		OUT_FILE=$(echo "${FILE_NAME}" | sed "s/\.${FILE_TYPE}/\.${CONVERT_TYPE}/")
+		OUT="${BASE_DIR}/${OUT_FILE}"
 		echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - samtools view command:"
 		echo "${SLURM_MULTI} ${SAMTOOLS} view -T ${REF_FASTA} ${CONVERT_OPT} ${SAMTOOLS_MULTI} -o ${OUT} ${FILE}";
 		${TEST_PREFIX} ${SLURM_MULTI} ${SAMTOOLS} view -T ${REF_FASTA} ${CONVERT_OPT} ${SAMTOOLS_MULTI} -o ${OUT} ${FILE}  ${TEST_SUFFIX}
