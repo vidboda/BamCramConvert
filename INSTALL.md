@@ -13,4 +13,7 @@ then cd to BamCramConvert and
     git submodule update 
 
 BamCramConvert requires a decently recent version of samtools
-bam2cram-check (option -c) requires python > 3.5 (python path can be passed as an argument with -p) ans samtools > 1.3 (the same, using -st) 
+
+bam2cram-check (option -c) requires python > 3.5 (python path can be passed as an argument with -p)
+
+and samtools > 1.3 (the same, using -st) 
