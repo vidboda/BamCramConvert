@@ -7,18 +7,18 @@ Usage : bash bcc.sh
   
 		* -d|--directory	<path to search dir>: root dir for find command    
 		* -s|--size		<File size to search (man find -size)>: ex: +200000000k will search for files greater than 20Go; see man find -size argument    
-		* -mt|--modif-time	<File last modif to search (man find -mtime): ex: +180 will serach for files older than 6 months; see man find -mtime argument    
+		* -mt|--modif-time	<File last modif to search (man find -mtime): ex: +180 will search for files older than 6 months; see man find -mtime argument    
 		* -f|--file-type	<bam|cram>: file type to find and convert from (bam will search for bam files and convert to cram)
     
 	Optional arguments :
   
-		* -rm|--remove		:removes original file and index (in case of full conversion success) - default: false
-		* -st|--samtools	<path to samtools> - default: default:try to locate in PATH
-		* -fa|--ref-fasta	<path to ref genome .fa>: path to a fasta file reference genome (the directory containing the fasta file must also contain samtools index) - default:/usr/local/share/refData/genome/hg19/hg19.fa
+		* -rm|--remove		:removes original file and index (in case of full conversion success implies bam2cram-check) - default: false
+		* -st|--samtools	<path to samtools> - default: try to locate in PATH
+		* -fa|--ref-fasta	<path to ref genome .fa>: path to a fasta file reference genome (the directory containing the fasta file must also contain samtools index) - default: /usr/local/share/refData/genome/hg19/hg19.fa
 		* -c|--check		: uses bam2cram-check (slightly modified) to check the conversion - implicitely included with -rm - if fails and -rm: rm canceled) - requires python >3.5 and samtools > 1.3
 		* -p|--python3		<path to python3> - used in combination with -c or -rm: needed to run submodule bam2cram-check - default: /usr/bin/python3 - python version must be > 3.5
-		* -uc|--use-crumble     : uses crumble to compress the converted BAM/CRAM file - Note: a file that already contains "_crumble" in its name will not be converted again
-		* -cp|--crumble-path    <path to crumble> - used in combination to -uc: needed to run crumble - default: try to locate in PATH
+		* -uc|--use-crumble     : uses crumble to compress the converted BAM/CRAM file - Note: a file that already contains "crumble" in its name will not be converted again
+		* -cp|--crumble-path    <path to crumble> - used in combination with -uc: needed to run crumble - default: try to locate in PATH
     
 	General arguments :
   
@@ -48,10 +48,10 @@ bash bcc.sh -d path/to/dir/ -mt +7 -s +100M -f bam -fa /path/to/hg38.fa -sl -th 
 * the same in dry run mode and providing optional samtools path (otherwise is searched in PATH) - it is highly recommanded to use the dry run mode before launching a command, just to be sure of what will be done:
 
 ```bash
-bash bcc.sh -d path/to/dir/ -mt +7 -s +100M -f bam -fa /path/to/hg38.fa -sl -th 3 -st /usr/local/bin/samtools -t
+bash bcc.sh -d path/to/dir/ -mt +7 -s +100M -f bam -fa /path/to/hg38.fa -sl -th 3 -st /special/place/samtools -t
 ```
 
-* convert CRAM files in directory dir (recursively) int BAM, CRAM size min 5Go, from today, remove original CRAM files (implies bam2cram-check):
+* convert CRAM files in directory dir (recursively) into BAM, CRAM size min 5Go, from today, remove original CRAM files (implies bam2cram-check):
 
 ```bash
 bash bcc.sh -d patho/to/dir/ -mt -1 -s +5G -f cram -fa /path/to/hg38.fa -rm
