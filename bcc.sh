@@ -36,16 +36,16 @@ usage ()
 	echo '	Mandatory arguments :'
 	echo '		* -d|--directory	<path to search dir>: root dir for find command'
 	echo '		* -s|--size		<File size to search (man find -size)>: ex: +200000000k will search for files greater than 20Go; see man find -size argument'
-	echo '		* -mt|--modif-time	<File last modif to search (man find -mtime): ex: +180 will serach for files older than 6 months; see man find -mtime argument'
+	echo '		* -mt|--modif-time	<File last modif to search (man find -mtime): ex: +180 will search for files older than 6 months; see man find -mtime argument'
 	echo '		* -f|--file-type	<bam|cram>: file type to find and convert from (bam will search for bam files and convert to cram'
 	echo '	Optional arguments :'
-	echo '		* -rm|--remove		: removes original file and index (in case of full conversion success) - default: false'
-	echo '		* -st|--samtools	<path to samtools> - default:try to locate in PATH'
-	echo '		* -fa|--ref-fasta	<path to ref genome .fa>: path to a fasta file reference genome (the directory containing the fasta file must also contain samtools index) - default:/usr/local/share/refData/genome/hg19/hg19.fa'
+	echo '		* -rm|--remove		: removes original file and index (in case of full conversion successi implies bam2cram-check) - default: false'
+	echo '		* -st|--samtools	<path to samtools> - default: try to locate in PATH'
+	echo '		* -fa|--ref-fasta	<path to ref genome .fa>: path to a fasta file reference genome (the directory containing the fasta file must also contain samtools index) - default: /usr/local/share/refData/genome/hg19/hg19.fa'
 	echo '		* -c|--check		: uses bam2cram-check (slightly modified) to check the conversion - implicitely included with -rm - if fails and -rm: rm canceled) - requires python >3.5 and samtools > 1.3'
 	echo '		* -p|--python3		<path to python3> - used in combination with -c or -rm: needed to run submodule bam2cram-check - default: /usr/bin/python3 - python version must be > 3.5'
-	echo '		* -uc|--use-crumble	: uses crumble to compress the converted BAM/CRAM file - Note: a file that already contains "_crumble" in its name will not be converted again'
-	echo '		* -cp|--crumble-path	<path to crumble> - used in combination to -uc: needed to run crumble - default: try to locate in PATH'
+	echo '		* -uc|--use-crumble	: uses crumble to compress the converted BAM/CRAM file - Note: a file that already contains "crumble" in its name will not be converted again'
+	echo '		* -cp|--crumble-path	<path to crumble> - used in combination with -uc: needed to run crumble - default: try to locate in PATH'
 	echo '	General arguments :'
 	echo '		* -sl|--slurm   : when running in SLURM environnment, generates srun commands - default: false'
 	echo '		* -th|--threads : number of threads to be used for samtools -@ option (0 => 1 total thread, 1 => 2 total threads...)'
@@ -271,8 +271,15 @@ convert () {
 					echo "${SLURM_MULTI} ${CRUMBLE} -O ${CONVERT_TYPE},nthreads=${SLURM_THREADS} ${OUT} ${CRUMBLE_OUT}"
 					${TEST_PREFIX} ${SLURM_MULTI} ${CRUMBLE} -O ${CONVERT_TYPE},nthreads=${SLURM_THREADS} ${OUT} ${CRUMBLE_OUT} ${TEST_SUFFIX}
 					if [ $? -eq 0 ];then
-						echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - crumble compression successfull"
-						${TEST_PREFIX} ${SLURM} rm ${OUT} ${TEST_SUFFIX}
+						echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - crumble compression successfull - samtools index command"
+						echo "${SLURM} ${SAMTOOLS} index ${CRUMBLE_OUT} ${CRUMBLE_OUT}${CONVERT_SUFFIX_INDEX}"
+						if [ $? -eq 0 ];then
+							echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Indexing sucessfull - removing ${OUT}"
+							${TEST_PREFIX} ${SLURM} ${SAMTOOLS} index ${CRUMBLE_OUT} ${CRUMBLE_OUT}${CONVERT_SUFFIX_INDEX} ${TEST_SUFFIX}
+							${TEST_PREFIX} ${SLURM} rm ${OUT} ${OUT}${CONVERT_SUFFIX_INDEX} ${TEST_SUFFIX}
+						else
+							echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - Error while indexing ${CRUMBLE_OUT} - ${OUT} won't be erased"
+						fi
 					else
 						echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - Error while compressing ${OUT} - ${OUT} won't be erased"
 					fi
