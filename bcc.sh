@@ -31,25 +31,27 @@ fi
 
 usage ()
 {
-	echo 'This script convert bam files to cram  and reverse.';
-	echo 'Usage : bash bcc.sh';
-	echo '	Mandatory arguments :';
-	echo '		* -d|--directory	<path to search dir>: root dir for find command';
-	echo '		* -s|--size		<File size to search (man find -size)>: ex: +200000000k will search for files greater than 20Go; see man find -size argument';
-	echo '		* -mt|--modif-time	<File last modif to search (man find -mtime): ex: +180 will serach for files older than 6 months; see man find -mtime argument';
-	echo '		* -f|--file-type	<bam|cram>: file type to find and convert from (bam will search for bam files and convert to cram';
-	echo '	Optional arguments :';
-	echo '		* -rm|--remove		: removes original file and index (in case of full conversion success) - default: false';
-	echo '		* -st|--samtools	<path to samtools> - default: /usr/local/bin/samtools';
-	echo '		* -fa|--ref-fasta	<path to ref genome .fa>: path to a fasta file reference genome (the directory containing the fasta file must also contain samtools index) - default:/usr/local/share/refData/genome/hg19/hg19.fa';
-	echo '		* -c|--check		: uses bam2cram-check (slightly modified) to check the conversion - implicitely included with -rm - if fails and -rm: rm canceled) - requires python >3.5 and samtools > 1.3';
-	echo '		* -p|--python3		<path to python3> - used in combination with -c or -rm: needed to run submodule bam2cram-check - default: /usr/bin/python3';
-	echo '	General arguments :';
-	echo '		* -sl|--slurm   : when running in SLURM environnment, generates srun commands - default: false';
+	echo 'This script convert bam files to cram and reverse.'
+	echo 'Usage : bash bcc.sh'
+	echo '	Mandatory arguments :'
+	echo '		* -d|--directory	<path to search dir>: root dir for find command'
+	echo '		* -s|--size		<File size to search (man find -size)>: ex: +200000000k will search for files greater than 20Go; see man find -size argument'
+	echo '		* -mt|--modif-time	<File last modif to search (man find -mtime): ex: +180 will serach for files older than 6 months; see man find -mtime argument'
+	echo '		* -f|--file-type	<bam|cram>: file type to find and convert from (bam will search for bam files and convert to cram'
+	echo '	Optional arguments :'
+	echo '		* -rm|--remove		: removes original file and index (in case of full conversion success) - default: false'
+	echo '		* -st|--samtools	<path to samtools> - default:try to locate in PATH'
+	echo '		* -fa|--ref-fasta	<path to ref genome .fa>: path to a fasta file reference genome (the directory containing the fasta file must also contain samtools index) - default:/usr/local/share/refData/genome/hg19/hg19.fa'
+	echo '		* -c|--check		: uses bam2cram-check (slightly modified) to check the conversion - implicitely included with -rm - if fails and -rm: rm canceled) - requires python >3.5 and samtools > 1.3'
+	echo '		* -p|--python3		<path to python3> - used in combination with -c or -rm: needed to run submodule bam2cram-check - default: /usr/bin/python3 - python version must be > 3.5'
+	echo '		* -uc|--use-crumble	: uses crumble to compress the converted BAM/CRAM file - Note: a file that already contains "_crumble" in its name will not be converted again'
+	echo '		* -cp|--crumble-path	<path to crumble> - used in combination to -uc: needed to run crumble - default: try to locate in PATH'
+	echo '	General arguments :'
+	echo '		* -sl|--slurm   : when running in SLURM environnment, generates srun commands - default: false'
 	echo '		* -th|--threads : number of threads to be used for samtools -@ option (0 => 1 total thread, 1 => 2 total threads...)'
-	echo '		* -h		: show this help message and exit';
-	echo '		* -t		: test mode (dont execute command just print them) - default: false';
-	echo '';
+	echo '		* -h		: show this help message and exit'
+	echo '		* -t		: test mode (dont execute command just print them) - default: false'
+	echo ''
 	exit
 }
 
@@ -59,11 +61,14 @@ THREADS=0
 TEST_MODE=false
 RM=false
 CHECK=false
-SAMTOOLS=/usr/local/bin/samtools
-REF_FASTA=/usr/local/share/refData/genome/hg19/hg19.fa
-GENOME_VERSION=hg19
+SAMTOOLS=$(which samtools)
+REF_FASTA='/usr/local/share/refData/genome/hg19/hg19.fa'
+GENOME_VERSION='hg19'
 CHR1_LEN=249250621
-PYTHON3=/usr/bin/python3
+PYTHON3='/usr/bin/python3'
+CRUMBLE=$(which crumble)
+CRUMBLE_MOTIF='crumble'
+#CRUMBLE=/usr/local/bin/crumble
 
 # --Parse command line
 while [ "$1" != "" ];do
@@ -91,6 +96,11 @@ while [ "$1" != "" ];do
 		-p | --python3 )	shift
 			PYTHON3=$1
 			;;
+		-uc | --use-crumble )	USE_CRUMBLE=true
+			;;
+		-cp | --crumble-path )	shift
+			CRUMBLE=$1
+			;;
 		-rm | --remove ) RM=true
 			;;
 		-sl | --slurm )	SLURM_MODE=true
@@ -111,30 +121,41 @@ done
 
 ##### Control options
 if [[ -z "${SIZE}" || -z "${MTIME}" || -z "${FILE_TYPE}" || -z "${DIR}" ]];then
-	echo "size: ${SIZE} - mtime: ${MTIME} - file type: ${FILE_TYPE} - dir: ${DIR}"; 
+	echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - size: ${SIZE} - mtime: ${MTIME} - file type: ${FILE_TYPE} - dir: ${DIR}"
 	usage
 	exit 1
 fi
 if [[ ! -d "${DIR}" ]];then
-	echo "${DIR} is not a directory";
+	echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - ${DIR} is not a directory"
 	usage
 	exit 1
 fi
 if [ "${FILE_TYPE}" != "bam" -a "${FILE_TYPE}" != "cram" ];then
-	echo "bad file type ${FILE_TYPE}, should be bam or cram";
+	echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - bad file type ${FILE_TYPE}, should be bam or cram"
 	usage
 	exit 1
 fi
 if [[ ! -x "${SAMTOOLS}" || ! -r "${REF_FASTA}" ]];then
-	echo "samtools path ${SAMTOOLS} or ref fasta path ${REF_FASTA} is false";
+	echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - samtools path ${SAMTOOLS} or ref fasta path ${REF_FASTA} is false"
 	usage
 	exit 1
 fi
 if [[ ! "${THREADS}" =~ ^[0-9]+$ ]];then
-	echo "-th option must be an integer"
+	echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - -th option must be an integer"
 	usage
 	exit 1
 fi
+if [[ ! -x "${PYTHON3}" ]] && [[ "$RM{}" == 'true' || "${CHECK}" == 'true' ]];then
+	echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - Could not find Python 3 executable ${PYTHON3}"
+	usage
+	exit 1
+fi
+if [[ ! -x "${CRUMBLE}" && "${USE_CRUMBLE}" == 'true' ]];then
+	echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - Could not find Crumble executable ${CRUMBLE}"
+	usage
+	exit 1
+fi
+
 SAMTOOLS_MULTI=''
 if [ "${THREADS}" -gt 0 ];then
 	SAMTOOLS_MULTI="-@ ${THREADS}"
@@ -158,7 +179,14 @@ fi
 
 check () {
 	OUT_DIR=$(dirname "${1}")
-	${TEST_PREFIX} ${PYTHON3} bam2cram-check/main.py -b ${1} -c ${2} -r ${3} -s -e ${OUT_DIR}/bam2cramcheck_error.txt --log ${OUT_DIR}/bam2cramcheck_log.txt ${TEST_SUFFIX}
+	if [ ${1##*\.} == 'bam' ];then
+		BAM="${1}"
+		CRAM="${2}"
+	else
+		CRAM="${1}"
+		BAM="${2}"
+	fi
+	${TEST_PREFIX} ${PYTHON3} bam2cram-check/main.py -b ${BAM} -c ${CRAM} -r ${3} -s -e ${OUT_DIR}/bam2cramcheck_error.txt --log ${OUT_DIR}/bam2cramcheck_log.txt ${TEST_SUFFIX}
 	if [ $? -eq 0 ];then
 		#RESULT=$(grep 'There were no errors and no differences between the stats for the 2 files' "${OUT_DIR}/bam2cramcheck_log.txt")
 		#if [ "${TEST_MODE}" == true ];then
@@ -203,8 +231,14 @@ convert () {
 		FILE_NAME=$(basename "$FILE")
 		OUT_FILE=$(echo "${FILE_NAME}" | sed "s/\.${FILE_TYPE}/\.${CONVERT_TYPE}/")
 		OUT="${BASE_DIR}/${OUT_FILE}"
+		PER_FILE_USE_CRUMBLE="${USE_CRUMBLE}"
+		#look for '_crumble' motif in file name not to recrumble a file
+		if [[ "${USE_CRUMBLE}" == 'true' ]] && [[ "${FILE_NAME}" =~ ${CRUMBLE_MOTIF} ]];then
+			PER_FILE_USE_CRUMBLE=false
+			echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - crumble is activated but file name ${FILE_NAME} already contains 'crumble' motif therefore crumble will be deactivated for this file"
+		fi
 		echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - samtools view command:"
-		echo "${SLURM_MULTI} ${SAMTOOLS} view -T ${REF_FASTA} ${CONVERT_OPT} ${SAMTOOLS_MULTI} -o ${OUT} ${FILE}";
+		echo "${SLURM_MULTI} ${SAMTOOLS} view -T ${REF_FASTA} ${CONVERT_OPT} ${SAMTOOLS_MULTI} -o ${OUT} ${FILE}"
 		${TEST_PREFIX} ${SLURM_MULTI} ${SAMTOOLS} view -T ${REF_FASTA} ${CONVERT_OPT} ${SAMTOOLS_MULTI} -o ${OUT} ${FILE}  ${TEST_SUFFIX}
 		if [ $? -eq 0 ];then
 			echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Conversion successfull - samtools index command:"
@@ -230,6 +264,19 @@ convert () {
 				else
 					echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Indexing sucessfull"
 				fi
+				#crumble
+				if [ "${PER_FILE_USE_CRUMBLE}" == true ];then
+					CRUMBLE_OUT=$(echo "${OUT}" | sed "s/\.${CONVERT_TYPE}$/\.${CRUMBLE_MOTIF}\.${CONVERT_TYPE}/")
+					echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - crumble command:"
+					echo "${SLURM_MULTI} ${CRUMBLE} -O ${CONVERT_TYPE},nthreads=${SLURM_THREADS} ${OUT} ${CRUMBLE_OUT}"
+					${TEST_PREFIX} ${SLURM_MULTI} ${CRUMBLE} -O ${CONVERT_TYPE},nthreads=${SLURM_THREADS} ${OUT} ${CRUMBLE_OUT} ${TEST_SUFFIX}
+					if [ $? -eq 0 ];then
+						echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - crumble compression successfull"
+						${TEST_PREFIX} ${SLURM} rm ${OUT} ${TEST_SUFFIX}
+					else
+						echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - Error while compressing ${OUT} - ${OUT} won't be erased"
+					fi
+				fi	
 			else
 				echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - Error while indexing ${OUT}"
 			fi
