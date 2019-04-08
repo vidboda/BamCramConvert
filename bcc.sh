@@ -256,7 +256,7 @@ convert () {
 			fi
 			if [ $? -eq 0 ];then
 				if [ "${RM}" == true ];then
-					echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Indexing sucessfull - checking files"
+					echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Indexing sucessfull - checking files:"
 					CHECK_VALUE=$(check "${FILE}" "${OUT}" "${REF_FASTA}")
 					if [[ "${CHECK_VALUE}" =~ "bam2cram-check successfull" ]];then
 						echo "${CHECK_VALUE}"
@@ -269,16 +269,22 @@ convert () {
 					else
 						echo "${CHECK_VALUE}"
 						echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - bam2cram-check failed: rm canceled"
+						#CHECK_VALUE='failed'
 					fi
 				elif [ "${CHECK}" == true ];then
 					echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Indexing sucessfull - checking files:"
 					CHECK_VALUE=$(check "${FILE}" "${OUT}" "${REF_FASTA}")
 					echo "${CHECK_VALUE}"
+					#if [[ "${CHECK_VALUE}" =~ "bam2cram-check failed" ]];then
+					#	CHECK_VALUE='failed'
+					#fi
 				else
 					echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Indexing sucessfull"
+					#no check so we pass CHECK_VALUE to success
+					CHECK_VALUE='bam2cram-check successfull'
 				fi
 				#crumble
-				if [ "${PER_FILE_USE_CRUMBLE}" == true ];then
+				if [[ "${PER_FILE_USE_CRUMBLE}" == true && "${CHECK_VALUE}" =~ "bam2cram-check successfull" ]];then
 					CRUMBLE_OUT=$(echo "${OUT}" | sed "s/\.${CONVERT_TYPE}$/\.${CRUMBLE_MOTIF}\.${CONVERT_TYPE}/")
 					echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - crumble command:"
 					echo "${SLURM_MULTI} \"${CRUMBLE}\" -O \"${CONVERT_TYPE},nthreads=${SLURM_THREADS}\" \"${OUT}\" \"${CRUMBLE_OUT}\""
