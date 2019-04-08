@@ -170,12 +170,12 @@ if [ "${SLURM_MODE}" == true ];then
 		SLURM_MULTI="srun -N1 -c${SLURM_THREADS} "
 	fi
 fi
-TEST_PREFIX=''
-TEST_SUFFIX=''
-if [ "${TEST_MODE}" == true ];then
-	TEST_PREFIX='echo "dry run cmd: '
-	TEST_SUFFIX='"'
-fi
+#TEST_PREFIX=''
+#TEST_SUFFIX=''
+#if [ "${TEST_MODE}" == true ];then
+#	TEST_PREFIX='echo "dry run cmd: '
+#	TEST_SUFFIX='"'
+#fi
 
 check () {
 	OUT_DIR=$(dirname "${1}")
@@ -186,22 +186,26 @@ check () {
 		CRAM="${1}"
 		BAM="${2}"
 	fi
-	${TEST_PREFIX} ${PYTHON3} bam2cram-check/main.py -b ${BAM} -c ${CRAM} -r ${3} -s -e ${OUT_DIR}/bam2cramcheck_error.txt --log ${OUT_DIR}/bam2cramcheck_log.txt ${TEST_SUFFIX}
-	if [ $? -eq 0 ];then
+	echo "\"${PYTHON3}\" bam2cram-check/main.py -b \"${BAM}\" -c \"${CRAM}\" -r \"${3}\" -s -e \"${OUT_DIR}/bam2cramcheck_error.txt\" --log \"${OUT_DIR}/bam2cramcheck_log.txt\""
+	if [ "${TEST_MODE}" == false ];then
+		#${TEST_PREFIX} ${PYTHON3} bam2cram-check/main.py -b ${BAM} -c ${CRAM} -r ${3} -s -e ${OUT_DIR}/bam2cramcheck_error.txt --log ${OUT_DIR}/bam2cramcheck_log.txt ${TEST_SUFFIX}
+		"${PYTHON3}" bam2cram-check/main.py -b "${BAM}" -c "${CRAM}" -r "${3}" -s -e "${OUT_DIR}/bam2cramcheck_error.txt" --log "${OUT_DIR}/bam2cramcheck_log.txt"
+		if [ $? -eq 0 ];then
 		#RESULT=$(grep 'There were no errors and no differences between the stats for the 2 files' "${OUT_DIR}/bam2cramcheck_log.txt")
 		#if [ "${TEST_MODE}" == true ];then
 		#	RESULT=0
 		#fi
 		#if [ "${RESULT}" =~ "2 files" ];then
-		if [ "${TEST_MODE}" == true ];then
-			echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - bam2cram-check successfull"
-		elif grep -q 'There were no errors and no differences between the stats for the 2 files' "${OUT_DIR}/bam2cramcheck_log.txt";then
-			echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - bam2cram-check successfull"
+			if grep -q 'There were no errors and no differences between the stats for the 2 files' "${OUT_DIR}/bam2cramcheck_log.txt";then
+				echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - bam2cram-check successfull"
+			else
+				echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - bam2cram-check failed: check ${OUT_DIR}/bam2cramcheck_error.txt"
+			fi
 		else
 			echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - bam2cram-check failed: check ${OUT_DIR}/bam2cramcheck_error.txt"
 		fi
 	else
-		echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - bam2cram-check failed: check ${OUT_DIR}/bam2cramcheck_error.txt"
+		echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - bam2cram-check successfull"
 	fi
 }
 
@@ -226,7 +230,7 @@ convert () {
 			echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - ${FILE} won't be converted"
 			continue
 		fi
-		echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Starting conversion of ${FILE} into ${CONVERT_TYPE}"
+		echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Starting conversion of \"${FILE}\" into ${CONVERT_TYPE}"
 		BASE_DIR=$(dirname "$FILE")
 		FILE_NAME=$(basename "$FILE")
 		OUT_FILE=$(echo "${FILE_NAME}" | sed "s/\.${FILE_TYPE}/\.${CONVERT_TYPE}/")
@@ -238,12 +242,18 @@ convert () {
 			echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - crumble is activated but file name ${FILE_NAME} already contains 'crumble' motif therefore crumble will be deactivated for this file"
 		fi
 		echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - samtools view command:"
-		echo "${SLURM_MULTI} ${SAMTOOLS} view -T ${REF_FASTA} ${CONVERT_OPT} ${SAMTOOLS_MULTI} -o ${OUT} ${FILE}"
-		${TEST_PREFIX} ${SLURM_MULTI} ${SAMTOOLS} view -T ${REF_FASTA} ${CONVERT_OPT} ${SAMTOOLS_MULTI} -o ${OUT} ${FILE}  ${TEST_SUFFIX}
+		echo "${SLURM_MULTI} \"${SAMTOOLS}\" view -T \"${REF_FASTA}\" ${CONVERT_OPT} ${SAMTOOLS_MULTI} -o \"${OUT}\" \"${FILE}\""
+		if [ "${TEST_MODE}" == false ];then
+			#${TEST_PREFIX} ${SLURM_MULTI} ${SAMTOOLS} view -T ${REF_FASTA} ${CONVERT_OPT} ${SAMTOOLS_MULTI} -o ${OUT} ${FILE}  ${TEST_SUFFIX}
+			${SLURM_MULTI} "${SAMTOOLS}" view -T "${REF_FASTA}" ${CONVERT_OPT} ${SAMTOOLS_MULTI} -o "${OUT}" "${FILE}"
+		fi
 		if [ $? -eq 0 ];then
 			echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Conversion successfull - samtools index command:"
-			echo "${SLURM} ${SAMTOOLS} index ${OUT} ${OUT}${CONVERT_SUFFIX_INDEX}"
-			${TEST_PREFIX} ${SLURM} ${SAMTOOLS} index ${OUT} ${OUT}${CONVERT_SUFFIX_INDEX} ${TEST_SUFFIX}
+			echo "${SLURM} \"${SAMTOOLS}\" index \"${OUT}\" \"${OUT}${CONVERT_SUFFIX_INDEX}\""
+			if [ "${TEST_MODE}" == false ];then
+				#${TEST_PREFIX} ${SLURM} ${SAMTOOLS} index ${OUT} ${OUT}${CONVERT_SUFFIX_INDEX} ${TEST_SUFFIX}
+				${SLURM} "${SAMTOOLS}" index "${OUT}" "${OUT}${CONVERT_SUFFIX_INDEX}"
+			fi
 			if [ $? -eq 0 ];then
 				if [ "${RM}" == true ];then
 					echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Indexing sucessfull - checking files"
@@ -251,8 +261,11 @@ convert () {
 					if [[ "${CHECK_VALUE}" =~ "bam2cram-check successfull" ]];then
 						echo "${CHECK_VALUE}"
 						RM_FILE=${FILE%.${FILE_TYPE}}
-						echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - removing ${RM_FILE}${FILE_SMALL_SUFFIX}*" 
-						${TEST_PREFIX} ${SLURM} rm ${RM_FILE}${FILE_SMALL_SUFFIX}* ${TEST_SUFFIX}
+						echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - removing \"${RM_FILE}${FILE_SMALL_SUFFIX}*\"" 
+						if [ "${TEST_MODE}" == false ];then
+							#${TEST_PREFIX} ${SLURM} rm ${RM_FILE}${FILE_SMALL_SUFFIX}* ${TEST_SUFFIX}
+							${SLURM} rm "${RM_FILE}${FILE_SMALL_SUFFIX}"*
+						fi
 					else
 						echo "${CHECK_VALUE}"
 						echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - bam2cram-check failed: rm canceled"
@@ -268,15 +281,24 @@ convert () {
 				if [ "${PER_FILE_USE_CRUMBLE}" == true ];then
 					CRUMBLE_OUT=$(echo "${OUT}" | sed "s/\.${CONVERT_TYPE}$/\.${CRUMBLE_MOTIF}\.${CONVERT_TYPE}/")
 					echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - crumble command:"
-					echo "${SLURM_MULTI} ${CRUMBLE} -O ${CONVERT_TYPE},nthreads=${SLURM_THREADS} ${OUT} ${CRUMBLE_OUT}"
-					${TEST_PREFIX} ${SLURM_MULTI} ${CRUMBLE} -O ${CONVERT_TYPE},nthreads=${SLURM_THREADS} ${OUT} ${CRUMBLE_OUT} ${TEST_SUFFIX}
+					echo "${SLURM_MULTI} \"${CRUMBLE}\" -O \"${CONVERT_TYPE},nthreads=${SLURM_THREADS}\" \"${OUT}\" \"${CRUMBLE_OUT}\""
+					if [ "${TEST_MODE}" == false ];then
+						#${TEST_PREFIX} ${SLURM_MULTI} ${CRUMBLE} -O ${CONVERT_TYPE},nthreads=${SLURM_THREADS} ${OUT} ${CRUMBLE_OUT} ${TEST_SUFFIX}
+						${SLURM_MULTI} "${CRUMBLE}" -O "${CONVERT_TYPE},nthreads=${SLURM_THREADS}" "${OUT}" "${CRUMBLE_OUT}"
+					fi
 					if [ $? -eq 0 ];then
-						echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - crumble compression successfull - samtools index command"
-						echo "${SLURM} ${SAMTOOLS} index ${CRUMBLE_OUT} ${CRUMBLE_OUT}${CONVERT_SUFFIX_INDEX}"
+						echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - crumble compression successfull - samtools index command:"
+						echo "${SLURM} \"${SAMTOOLS}\" index \"${CRUMBLE_OUT}\" \"${CRUMBLE_OUT}${CONVERT_SUFFIX_INDEX}\""
+						if [ "${TEST_MODE}" == false ];then
+							#${TEST_PREFIX} ${SLURM} ${SAMTOOLS} index ${CRUMBLE_OUT} ${CRUMBLE_OUT}${CONVERT_SUFFIX_INDEX} ${TEST_SUFFIX}
+							${SLURM} "${SAMTOOLS}" index "${CRUMBLE_OUT}" "${CRUMBLE_OUT}${CONVERT_SUFFIX_INDEX}"
+						fi
 						if [ $? -eq 0 ];then
-							echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Indexing sucessfull - removing ${OUT}"
-							${TEST_PREFIX} ${SLURM} ${SAMTOOLS} index ${CRUMBLE_OUT} ${CRUMBLE_OUT}${CONVERT_SUFFIX_INDEX} ${TEST_SUFFIX}
-							${TEST_PREFIX} ${SLURM} rm ${OUT} ${OUT}${CONVERT_SUFFIX_INDEX} ${TEST_SUFFIX}
+							echo "INFO - [`date +'%Y-%m-%d %H:%M:%S'`] - Indexing sucessfull - removing \"${OUT}\""
+							if [ "${TEST_MODE}" == false ];then
+								#${TEST_PREFIX} ${SLURM} rm ${OUT} ${OUT}${CONVERT_SUFFIX_INDEX} ${TEST_SUFFIX}
+								${SLURM} rm "${OUT}" "${OUT}${CONVERT_SUFFIX_INDEX}"
+							fi
 						else
 							echo "ERROR - [`date +'%Y-%m-%d %H:%M:%S'`] - Error while indexing ${CRUMBLE_OUT} - ${OUT} won't be erased"
 						fi
