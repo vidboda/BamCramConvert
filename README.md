@@ -19,6 +19,7 @@ Usage : bash bcc.sh
 		* -p|--python3		<path to python3> - used in combination with -c or -rm: needed to run submodule bam2cram-check - default: /usr/bin/python3 - python version must be > 3.5
 		* -uc|--use-crumble     : uses crumble to compress the converted BAM/CRAM file - Note: a file that already contains "crumble" in its name will not be converted again
 		* -cp|--crumble-path    <path to crumble> - used in combination with -uc: needed to run crumble - default: try to locate in PATH
+		* -v | --verbosity 	<integer> : decrease or increase verbosity level (ERROR : 1 | WARNING : 2 | INFO : 3 | COMMAND [default] : 4 | DEBUG : 5)
     
 	General arguments :
   
