@@ -307,6 +307,11 @@ convert () {
 			PER_FILE_USE_CRUMBLE=false
 			warning "Crumble is activated but file name ${FILE_NAME} already contains 'crumble' motif therefore crumble will be deactivated for this file"
 		fi
+		if [ -f "${OUT}" ]; then
+			#file already exists
+			warning "${OUT} already exists - conversion aborted"
+			continue
+		fi
 		info "Launching samtools view"
 		cmd "${SLURM_MULTI} \"${SAMTOOLS}\" view -T \"${REF_FASTA}\" ${CONVERT_OPT} ${SAMTOOLS_MULTI} -o \"${OUT}\" \"${FILE}\""
 		if [ "${TEST_MODE}" == false ];then
