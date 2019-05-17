@@ -31,7 +31,7 @@ Usage : bash bcc.sh
 
 Installation:
 
-see INSTALL.md
+see [INSTALL.md](https://github.com/beboche/BamCramConvert/blob/master/INSTALL.md)
 
 Use cases:
 
