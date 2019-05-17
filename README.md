@@ -15,6 +15,7 @@ Usage : bash bcc.sh
 		* -rm|--remove		:removes original file and index (in case of full conversion success implies bam2cram-check) - default: false
 		* -st|--samtools	<path to samtools> - default: try to locate in PATH
 		* -fa|--ref-fasta	<path to ref genome .fa>: path to a fasta file reference genome (the directory containing the fasta file must also contain samtools index) - default: /usr/local/share/refData/genome/hg19/hg19.fa
+		* -drc|--disable-ref-check      :disable fasta reference file checking. Currently bcc can make a checking for hg19 and hg38 based on chr1 length. Disable for other assemblies.
 		* -c|--check		: uses bam2cram-check (slightly modified) to check the conversion - implicitely included with -rm - if fails and -rm: rm canceled) - requires python >3.5 and samtools > 1.3
 		* -p|--python3		<path to python3> - used in combination with -c or -rm: needed to run submodule bam2cram-check - default: /usr/bin/python3 - python version must be > 3.5
 		* -uc|--use-crumble     : uses crumble to compress the converted BAM/CRAM file - Note: a file that already contains "crumble" in its name will not be converted again

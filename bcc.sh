@@ -42,6 +42,7 @@ usage ()
 	echo '		* -rm|--remove		: removes original file and index (in case of full conversion successi implies bam2cram-check) - default: false'
 	echo '		* -st|--samtools	<path to samtools> - default: try to locate in PATH'
 	echo '		* -fa|--ref-fasta	<path to ref genome .fa>: path to a fasta file reference genome (the directory containing the fasta file must also contain samtools index) - default: /usr/local/share/refData/genome/hg19/hg19.fa'
+	echo '		* -drc|--disable-ref-check	:disable fasta reference file checking. Currently bcc can make a checking for hg19 and hg38 based on chr1 length. Disable for other assemblies.'
 	echo '		* -c|--check		: uses bam2cram-check (slightly modified) to check the conversion - implicitely included with -rm - if fails and -rm: rm canceled) - requires python >3.5 and samtools > 1.3'
 	echo '		* -p|--python3		<path to python3> - used in combination with -c or -rm: needed to run submodule bam2cram-check - default: /usr/bin/python3 - python version must be > 3.5'
 	echo '		* -uc|--use-crumble	: uses crumble to compress the converted BAM/CRAM file - Note: a file that already contains "crumble" in its name will not be converted again'
@@ -64,6 +65,7 @@ RM=false
 CHECK=false
 SAMTOOLS=$(which samtools)
 REF_FASTA='/usr/local/share/refData/genome/hg19/hg19.fa'
+REF_CHECK=true
 GENOME_VERSION='hg19'
 CHR1_LEN=249250621
 PYTHON3='/usr/bin/python3'
@@ -129,6 +131,8 @@ while [ "$1" != "" ];do
 			;;
 		-fa | --ref-fasta)	shift
 			REF_FASTA=$1
+			;;
+		-drc | --disable-ref-check)	REF_CHECK=false
 			;;
 		-p | --python3)	shift
 			PYTHON3=$1
@@ -239,6 +243,8 @@ debug "MIN FILE SIZE:${SIZE}"
 debug "LAST MODIFICATION TIME:${MTIME} DAYS"
 debug "SAMTOOLS:${SAMTOOLS}"
 debug "THREADS:${THREADS}"
+debug "REF FASTA:${REF_FASTA}"
+debug "REF CHECK:${REF_CHECK}"
 debug "REMOVE ORIGINAL FILE:${RM} - if true, automatically set next variable to true"
 debug "CHECK CONVERSION:${CHECK}"
 debug "PYTHON 3:${PYTHON3}"
@@ -278,23 +284,25 @@ check () {
 convert () {
 	FILE_LIST=$(find "${DIR}" -xdev -name "*.${FILE_TYPE}" -mtime "${MTIME}" -type f -size "${SIZE}" -exec ls "{}" \;)
 	for FILE in ${FILE_LIST}; do
-		#checking genome version - as genome version is not always explicitely cited in BAM headers (see LRM outputs), we wall check crh1 length
-		#hg19 chr1 : 249250621
-		#hg38 chr1 : 248956422
-		#then bcc must be aware of the REF_FASTA version : will look for 19 or 38 in the name
-		#must be updated with new assemblies
-		TEST_REF=$(echo "${REF_FASTA}" | grep hg38)
-		debug "BEFORE ASSIGNMENT REF:${REF_FASTA}-TESTREF:${TEST_REF}-GENOME:${GENOME_VERSION}-CHR1:${CHR1_LEN}"
-		if [ "${TEST_REF}" != '' ];then
-			GENOME_VERSION=hg38
-			CHR1_LEN=248956422
-		fi
-		TEST_REF=$("${SAMTOOLS}" view -H "${FILE}" | grep "LN:${CHR1_LEN}")
-		debug "AFTER ASSIGNMENT REF:${REF_FASTA}-TESTREF:${TEST_REF}-GENOME:${GENOME_VERSION}-CHR1:${CHR1_LEN}"
-		if [ "${TEST_REF}" == '' ];then
-			warning " ${FILE} genome version does not match ${GENOME_VERSION} based on chr1 length" # -${TEST_REF}-${GENOME_VERSION}-${CHR1_LEN}"
-			warning " ${FILE} won't be converted"
-			continue
+		if [ "${REF_CHECK}" == true ];then
+			#checking genome version - as genome version is not always explicitely cited in BAM headers (see LRM outputs), we wall check crh1 length
+			#hg19 chr1 : 249250621
+			#hg38 chr1 : 248956422
+			#then bcc must be aware of the REF_FASTA version : will look for 19 or 38 in the name
+			#must be updated with new assemblies
+			TEST_REF=$(echo "${REF_FASTA}" | grep hg38)
+			debug "BEFORE ASSIGNMENT REF:${REF_FASTA}-TESTREF:${TEST_REF}-GENOME:${GENOME_VERSION}-CHR1:${CHR1_LEN}"
+			if [ "${TEST_REF}" != '' ];then
+				GENOME_VERSION=hg38
+				CHR1_LEN=248956422
+			fi
+			TEST_REF=$("${SAMTOOLS}" view -H "${FILE}" | grep "LN:${CHR1_LEN}")
+			debug "AFTER ASSIGNMENT REF:${REF_FASTA}-TESTREF:${TEST_REF}-GENOME:${GENOME_VERSION}-CHR1:${CHR1_LEN}"
+			if [ "${TEST_REF}" == '' ];then
+				warning " ${FILE} genome version does not match ${GENOME_VERSION} based on chr1 length" # -${TEST_REF}-${GENOME_VERSION}-${CHR1_LEN}"
+				warning " ${FILE} won't be converted"
+				continue
+			fi
 		fi
 		info "Starting conversion of \"${FILE}\" into ${CONVERT_TYPE}"
 		BASE_DIR=$(dirname "$FILE")
