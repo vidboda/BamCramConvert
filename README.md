@@ -1,4 +1,5 @@
 # BamCramConvert
+
 Script to convert bam2cram and reverse using find, samtools (requires UNIX find and samtools...), and optionally a slighlty modified [forked](https://github.com/beboche/bam2cram-check) version of [bam2cram-check](https://github.com/wtsi-hgi/bam2cram-check). BamCramConvert can also apply [Crumble](https://github.com/jkbonfield/crumble) compression to your files!
 
 Usage : bash bcc.sh
